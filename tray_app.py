@@ -74,7 +74,7 @@ class GaladrielTrayApp:
 
     def build_gui(self):
         self.root = tk.Tk()
-        self.root.title("Galadriel - Personal AI Assistant")
+        self.root.title("EDITH")
         self.root.geometry("450x580")
         self.root.minsize(380, 480)
 
@@ -191,17 +191,38 @@ class GaladrielTrayApp:
             return
         self.input_entry.delete(0, tk.END)
         self._append_chat("Kamu", text)
+        self._append_chat("Galadriel", "⏳ Sedang berpikir...")
 
         # Jalankan inferensi di background thread agar UI tidak macet/freeze
         def _worker():
             try:
                 reply = self.assistant.ask(text)
                 clean_reply = reply[1:] if reply.startswith("\x00") else reply
-                self.root.after(0, lambda: self._append_chat("Galadriel", clean_reply))
+                # Hapus status 'Sedang berpikir...' dan ganti dengan jawaban aktual
+                self.root.after(0, self._replace_last_ai_message, clean_reply)
             except Exception as e:
-                self.root.after(0, lambda: self._append_chat("Galadriel", f"Maaf terjadi kendala: {e}"))
+                err_msg = f"Gagal merespons: {e}\n(Pastikan Ollama sedang berjalan dengan perintah: ollama serve)"
+                self.root.after(0, self._replace_last_ai_message, err_msg)
 
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _replace_last_ai_message(self, new_text):
+        # Update teks chat terakhir
+        self.chat_area.config(state="normal")
+        content = self.chat_area.get("1.0", tk.END)
+        marker = "Galadriel:\n⏳ Sedang berpikir...\n"
+        if marker in content:
+            # Ganti kemunculan terakhir
+            idx = content.rfind(marker)
+            # Konversi index karakter ke format Tkinter line.char
+            start_pos = f"1.0 + {idx} chars"
+            end_pos = f"1.0 + {idx + len(marker)} chars"
+            self.chat_area.delete(start_pos, end_pos)
+            self.chat_area.insert(start_pos, f"Galadriel:\n{new_text}\n", "content")
+        else:
+            self._append_chat("Galadriel", new_text)
+        self.chat_area.see(tk.END)
+        self.chat_area.config(state="disabled")
 
     def show_window(self):
         if self.root:
