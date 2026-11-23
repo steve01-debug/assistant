@@ -11,15 +11,29 @@ from voice import VoiceAssistant
 import memory
 
 
+ICON_PATH = os.path.join(os.path.dirname(__file__), "icon.ico")
+ICON_PNG_PATH = os.path.join(os.path.dirname(__file__), "icon.png")
+
+
 def create_tray_icon_image():
-    """Membuat icon bulat elegan sederhana secara dinamis tanpa butuh file .ico eksternal."""
+    """Memuat icon kustom (icon.ico / icon.png) jika ada, atau buat icon default."""
+    if os.path.exists(ICON_PNG_PATH):
+        try:
+            return Image.open(ICON_PNG_PATH)
+        except Exception:
+            pass
+    if os.path.exists(ICON_PATH):
+        try:
+            return Image.open(ICON_PATH)
+        except Exception:
+            pass
+
+    # Icon bawaan jika belum ada file gambar
     width = 64
     height = 64
     image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    # Lingkaran gradasi biru/ungu khas asisten AI
     draw.ellipse((4, 4, 60, 60), fill=(24, 119, 242, 255), outline=(255, 255, 255, 255), width=2)
-    # Inisial 'G' di tengah
     draw.ellipse((20, 20, 44, 44), fill=(255, 255, 255, 220))
     return image
 
@@ -63,6 +77,19 @@ class GaladrielTrayApp:
         self.root.title("Galadriel - Personal AI Assistant")
         self.root.geometry("450x580")
         self.root.minsize(380, 480)
+
+        # Pasang icon pada jendela popup chat jika file tersedia
+        if os.path.exists(ICON_PATH):
+            try:
+                self.root.iconbitmap(ICON_PATH)
+            except Exception:
+                pass
+        elif os.path.exists(ICON_PNG_PATH):
+            try:
+                icon_img = tk.PhotoImage(file=ICON_PNG_PATH)
+                self.root.iconphoto(False, icon_img)
+            except Exception:
+                pass
         
         # Tema modern gelap (Dark Theme)
         bg_color = "#1E1E2E"
@@ -230,3 +257,4 @@ class GaladrielTrayApp:
 if __name__ == "__main__":
     app = GaladrielTrayApp()
     app.start()
+
