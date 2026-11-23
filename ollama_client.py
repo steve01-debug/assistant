@@ -2,13 +2,17 @@ from ollama import Client  # pyright: ignore [missing-import]
 from config import MODEL_NAME
 from tools import ALL_TOOLS
 
+import os
+
 client = Client(host="http://localhost:11434")
 
+# Disesuaikan untuk CPU Windows: gunakan 8 thread dan batasi num_predict agar respons cepat
 STATIC_OPTIONS = {
-    "num_predict": 400,
-    "temperature": 0.2,
+    "num_predict": 150,
+    "temperature": 0.3,
     "top_p": 0.9,
-    "num_ctx": 2048,
+    "num_ctx": 1024,
+    "num_thread": 8,
     "repeat_penalty": 1.05
 }
 

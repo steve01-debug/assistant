@@ -84,62 +84,83 @@ class Assistant:
         if typing_resp is not None:
             return typing_resp
 
+        lowered = message.lower().strip()
+
+        # FAST-PATH: Pertanyaan identitas / sapaan umum langsung dijawab tanpa tool-calling schema
+        if lowered in ["kamu siapa", "siapa kamu", "who are you", "what is your name", "halo", "hi", "hai"]:
+            name = memory.recall("user_name")
+            user_info = f", {name}" if name else ""
+            reply_text = (
+                f"Saya Galadriel (EDITH){user_info}. Rekan diskusi sekaligus dosen pembimbing dan pengujimu. "
+                f"Saya di sini untuk mengevaluasi logikamu secara kritis, jujur apa adanya, dan membantumu menyelesaikan masalah secara terstruktur. "
+                f"Ada ide atau bahasan yang mau kita uji sekarang?"
+            )
+            self.history.append({"role": "user", "content": message})
+            self.history.append({"role": "assistant", "content": reply_text})
+            return "\x00" + reply_text
+
         # 2. Susun pesan percakapan
         system_content = self._build_system_prompt()
         messages = [{"role": "system", "content": system_content}]
         
-        # Tambahkan history terbaru (maksimal 4 interaksi terakhir agar konteks tetap cepat)
-        for h in self.history[-4:]:
+        # Tambahkan history terbaru (maksimal 2 interaksi terakhir agar inferensi CPU sangat ringan)
+        for h in self.history[-2:]:
             messages.append(h)
             
         messages.append({"role": "user", "content": message})
 
-        # 3. Minta Ollama mengevaluasi apakah ada tool call yang relevan
-        print("Menganalisis permintaan...")
-        msg = chat(messages)
+        # Deteksi apakah pesan memerlukan tools (misal ada kata 'buka', 'baca', 'tulis', 'simpan', 'cari')
+        tool_keywords = ["buka", "baca", "tulis", "simpan", "cari", "buat", "folder", "file", "http", ".com", "catatan", "aplikasi"]
+        need_tools = any(kw in lowered for kw in tool_keywords)
 
-        # 4. Jika model memilih tool_calls
-        if msg.tool_calls:
-            messages.append(msg)
-            for tool_call in msg.tool_calls:
-                func_name = tool_call.function.name
-                args = tool_call.function.arguments or {}
-                print(f"[Aksi] Menjalankan {func_name}({args})...")
+        if need_tools:
+            # Panggil dengan tool declaration
+            msg = chat(messages)
+            if msg.tool_calls:
+                messages.append(msg)
+                for tool_call in msg.tool_calls:
+                    func_name = tool_call.function.name
+                    args = tool_call.function.arguments or {}
+                    if func_name in TOOL_MAP:
+                        try:
+                            result = str(TOOL_MAP[func_name](**args))
+                        except PermissionDeniedError:
+                            result = "Aksi dibatalkan karena izin ditolak oleh pengguna."
+                        except Exception as e:
+                            result = f"Error saat menjalankan {func_name}: {e}"
+                    else:
+                        result = f"Tool {func_name} tidak ditemukan."
+                    
+                    messages.append({
+                        "role": "tool",
+                        "content": result,
+                    })
                 
-                if func_name in TOOL_MAP:
-                    try:
-                        result = str(TOOL_MAP[func_name](**args))
-                    except PermissionDeniedError:
-                        result = "Aksi dibatalkan karena izin ditolak oleh pengguna."
-                    except Exception as e:
-                        result = f"Error saat menjalankan {func_name}: {e}"
-                else:
-                    result = f"Tool {func_name} tidak ditemukan."
-                
-                messages.append({
-                    "role": "tool",
-                    "content": result,
-                })
-            
-            # Panggilan kedua untuk merangkum respons ke user setelah tool dijalankan
-            final_stream = chat_stream(messages)
+                # Stream ringkasan
+                final_stream = chat_stream(messages)
+                chunks = []
+                for part in final_stream:
+                    delta = part.message.content
+                    if delta:
+                        chunks.append(delta)
+                full_reply = "".join(chunks)
+                self.history.append({"role": "user", "content": message})
+                self.history.append({"role": "assistant", "content": full_reply})
+                return "\x00" + full_reply
+            else:
+                reply_text = msg.content or ""
+                self.history.append({"role": "user", "content": message})
+                self.history.append({"role": "assistant", "content": reply_text})
+                return "\x00" + reply_text
+        else:
+            # Langsung streaming respons biasa (jauh lebih cepat, tidak butuh evaluasi JSON schema)
+            stream = chat_stream(messages)
             chunks = []
-            print("\nEDITH : ", end="", flush=True)
-            for part in final_stream:
+            for part in stream:
                 delta = part.message.content
                 if delta:
                     chunks.append(delta)
-                    print(delta, end="", flush=True)
-            print()
-            full_reply = "".join(chunks)
+            reply_text = "".join(chunks)
             self.history.append({"role": "user", "content": message})
-            self.history.append({"role": "assistant", "content": full_reply})
-            return "\x00" + full_reply
-
-        # 5. Jika tidak ada tool call, stream jawaban biasa
-        # Karena msg sudah didapat dari chat(), jika berisi konten langsung kita cetak / stream
-        reply_text = msg.content or ""
-        print(f"\nEDITH : {reply_text}")
-        self.history.append({"role": "user", "content": message})
-        self.history.append({"role": "assistant", "content": reply_text})
-        return "\x00" + reply_text
+            self.history.append({"role": "assistant", "content": reply_text})
+            return "\x00" + reply_text
