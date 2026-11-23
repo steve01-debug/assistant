@@ -38,7 +38,7 @@ def create_tray_icon_image():
     return image
 
 
-class GaladrielTrayApp:
+class EDITTrayApp:
     def __init__(self):
         # Inisialisasi Memori & Assistant
         memory.init_memory()
@@ -66,7 +66,7 @@ class GaladrielTrayApp:
         clean_reply = reply[1:] if reply.startswith("\x00") else reply
         if self.root and self.is_window_visible:
             self.root.after(0, lambda: self._append_chat("Kamu (Suara)", text))
-            self.root.after(0, lambda: self._append_chat("Galadriel", clean_reply))
+            self.root.after(0, lambda: self._append_chat("EDITH", clean_reply))
         tts.speak(clean_reply)
 
     def handle_voice_wake(self):
@@ -106,7 +106,7 @@ class GaladrielTrayApp:
         
         title_label = tk.Label(
             header,
-            text="✨ Galadriel (EDITH)",
+            text="✨ EDITH",
             font=("Segoe UI", 13, "bold"),
             bg=card_bg,
             fg=accent_color
@@ -191,7 +191,7 @@ class GaladrielTrayApp:
             return
         self.input_entry.delete(0, tk.END)
         self._append_chat("Kamu", text)
-        self._append_chat("Galadriel", "⏳ Sedang berpikir...")
+        self._append_chat("EDITH", "⏳ Sedang berpikir...")
 
         # Jalankan inferensi di background thread agar UI tidak macet/freeze
         def _worker():
@@ -210,7 +210,7 @@ class GaladrielTrayApp:
         # Update teks chat terakhir
         self.chat_area.config(state="normal")
         content = self.chat_area.get("1.0", tk.END)
-        marker = "Galadriel:\n⏳ Sedang berpikir...\n"
+        marker = "EDITH:\n⏳ Sedang berpikir...\n"
         if marker in content:
             # Ganti kemunculan terakhir
             idx = content.rfind(marker)
@@ -218,9 +218,9 @@ class GaladrielTrayApp:
             start_pos = f"1.0 + {idx} chars"
             end_pos = f"1.0 + {idx + len(marker)} chars"
             self.chat_area.delete(start_pos, end_pos)
-            self.chat_area.insert(start_pos, f"Galadriel:\n{new_text}\n", "content")
+            self.chat_area.insert(start_pos, f"EDITH:\n{new_text}\n", "content")
         else:
-            self._append_chat("Galadriel", new_text)
+            self._append_chat("EDITH", new_text)
         self.chat_area.see(tk.END)
         self.chat_area.config(state="disabled")
 
@@ -257,12 +257,12 @@ class GaladrielTrayApp:
     def run_tray(self):
         image = create_tray_icon_image()
         menu = pystray.Menu(
-            pystray.MenuItem("Buka Galadriel", self.show_window, default=True),
+            pystray.MenuItem("Buka EDITH", self.show_window, default=True),
             pystray.MenuItem("Mode Suara (Voice)", lambda: self.voice_assistant.start_listening()),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Keluar", self.quit_app)
         )
-        self.tray_icon = pystray.Icon("Galadriel", image, "Galadriel AI Assistant", menu)
+        self.tray_icon = pystray.Icon("EDITH", image, "EDITH AI Assistant", menu)
         self.tray_icon.run()
 
     def start(self):
@@ -276,6 +276,6 @@ class GaladrielTrayApp:
 
 
 if __name__ == "__main__":
-    app = GaladrielTrayApp()
+    app = EDITTrayApp()
     app.start()
 
