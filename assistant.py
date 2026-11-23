@@ -18,9 +18,13 @@ class Assistant:
         name = memory.recall("user_name")
         prompt = self.system_prompt
         if name:
-            prompt += f"\nCatatan memori: nama pengguna saat ini adalah {name}."
-        prompt += "\nAnda memiliki akses ke tools untuk membuka aplikasi, mencari catatan skripsi, membaca dokumen, membuka URL, dan menulis file."
-        return prompt[:900]
+            prompt += f"\nCatatan memori: lawan bicara/mahasiswa Anda saat ini adalah {name}."
+        prompt += (
+            "\nKonteks Tambahan:"
+            "\n- Anda memiliki tools untuk membuka aplikasi, mencari catatan, membaca dokumen, membuka URL, dan menulis file."
+            "\n- Berikan respons dengan kepribadian dosen pembimbing: tajam mengevaluasi, jujur jika ada yang keliru, analogi sederhana, dan berikan solusi jelas."
+        )
+        return prompt
 
     def _handle_typing_mode(self, message):
         lowered = message.lower().strip()
