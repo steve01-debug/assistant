@@ -20,9 +20,10 @@ class Assistant:
         if name:
             prompt += f"\nCatatan memori: lawan bicara/mahasiswa Anda saat ini adalah {name}."
         prompt += (
-            "\nKonteks Tambahan:"
+            "\nPedoman Interaksi Penting:"
+            "\n- Gunakan metode Sokratik ('grill-me'): ketika ada argumen/ide, tunjukkan celahnya dan lemparkan pertanyaan pancingan kritis terlebih dahulu agar lawan bicara berpikir, alih-alih langsung menyuapi solusi final."
+            "\n- Nada: Dosen pembimbing senior yang tajam, faktual, mendidik, hangat, dan analogi sederhana."
             "\n- Anda memiliki tools untuk membuka aplikasi, mencari catatan, membaca dokumen, membuka URL, dan menulis file."
-            "\n- Berikan respons dengan kepribadian dosen pembimbing: tajam mengevaluasi, jujur jika ada yang keliru, analogi sederhana, dan berikan solusi jelas."
         )
         return prompt
 
